@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>California AV Collision Dataset</title>
+<meta name="description" content="Every autonomous-vehicle collision report filed with the California DMV (form OL 316), turned from PDFs into one clean, searchable dataset.">
+<style>
+  :root {
+    --paper: #f6f3ec; --card: #fffdf8; --ink: #1c1a17; --muted: #6b655b; --rule: #d9d2c3;
+    --accent: #8b1e2d; --accent-soft: #f0dcdd; --bar: #2f4a5c;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17150f; --card: #1f1c15; --ink: #ece7da; --muted: #a39b8a; --rule: #38332a;
+      --accent: #e0707d; --accent-soft: #3a2327; --bar: #7fa3b8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #17150f; --card: #1f1c15; --ink: #ece7da; --muted: #a39b8a; --rule: #38332a;
+    --accent: #e0707d; --accent-soft: #3a2327; --bar: #7fa3b8;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); line-height: 1.55; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px 64px; }
+  header { padding: 40px 0 20px; border-bottom: 3px double var(--ink); }
+  .kicker { font: 600 12px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: clamp(30px, 6vw, 52px); line-height: 1.08; margin: 10px 0 12px; letter-spacing: -.01em; }
+  .dek { font-size: 19px; color: var(--muted); max-width: 680px; margin: 0; }
+  .byline { font: 13px var(--sans); color: var(--muted); margin-top: 14px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 28px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .stat { padding: 16px 16px 16px 0; }
+  .stat b { display: block; font-size: 36px; line-height: 1; }
+  .stat span { font: 12px var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  h2 { font-size: 24px; margin: 40px 0 6px; }
+  .note { font: 13px var(--sans); color: var(--muted); margin: 0 0 14px; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; }
+  .chart h3 { font: 600 13px var(--sans); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 10px; }
+  .row { display: grid; grid-template-columns: minmax(90px, 40%) 1fr 34px; align-items: center; gap: 8px; font: 13px var(--sans); margin: 5px 0; }
+  .row .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .track { height: 12px; background: var(--rule); border-radius: 2px; overflow: hidden; }
+  .row .fill { height: 100%; background: var(--bar); }
+  .row .n { text-align: right; color: var(--muted); }
+  .tools { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; font-family: var(--sans); }
+  input, select { font: 14px var(--sans); padding: 9px 11px; border: 1px solid var(--rule); background: var(--card); color: var(--ink); border-radius: 3px; }
+  input { flex: 1 1 240px; }
+  a.btn, button { font: 600 13px var(--sans); padding: 9px 13px; border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 3px; text-decoration: none; cursor: pointer; }
+  a.btn:hover, button:hover { background: var(--ink); color: var(--paper); }
+  .case { background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--accent); padding: 14px 16px; margin: 12px 0; }
+  .case h4 { margin: 0 0 4px; font-size: 18px; }
+  .meta { font: 12.5px var(--sans); color: var(--muted); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+  .tag { font: 12px var(--sans); padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+  .tag.plain { background: var(--rule); color: var(--ink); }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; font: 600 13px var(--sans); color: var(--accent); }
+  details p { margin: 8px 0 0; font-size: 16px; }
+  .empty { padding: 30px 0; color: var(--muted); font-family: var(--sans); }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); font: 13px var(--sans); color: var(--muted); }
+  footer a { color: var(--accent); }
+  #theme { position: absolute; top: 12px; right: 12px; padding: 6px 10px; }
+</style>
+</head>
+<body>
+<button id="theme" aria-label="Toggle dark mode">Dark / light</button>
+<div class="wrap">
+  <header>
+    <div class="kicker">Open data &middot; California DMV</div>
+    <h1>Every robotaxi crash report, in one table</h1>
+    <p class="dek">California requires autonomous-vehicle companies to file a PDF form (OL&nbsp;316) after any collision. This project reads those forms and turns them into a clean dataset you can search, sort and download.</p>
+    <div class="byline" id="byline">Loading&hellip;</div>
+  </header>
+
+  <section class="stats" id="stats" aria-label="Summary"></section>
+
+  <section>
+    <h2>The shape of the data</h2>
+    <p class="note">Counts of reports in this dataset, not of all crashes involving AVs.</p>
+    <div class="charts" id="charts"></div>
+  </section>
+
+  <section>
+    <h2>Browse the reports</h2>
+    <div class="tools">
+      <input id="q" type="search" placeholder="Search city, company, street, or narrative text&hellip;" aria-label="Search reports">
+      <select id="mfr" aria-label="Filter by company"><option value="">All companies</option></select>
+      <a class="btn" href="reports.csv" download>Download CSV</a>
+      <a class="btn" href="data.json" download>JSON</a>
+    </div>
+    <div class="note" id="count"></div>
+    <div id="list"></div>
+  </section>
+
+  <footer id="foot">
+    Source: <a href="https://www.dmv.ca.gov/portal/vehicle-industry-services/autonomous-vehicles/autonomous-vehicle-collision-reports/">California DMV autonomous vehicle collision reports</a>.
+    Personal details (driver names, licence numbers, birth dates, insurance policy numbers, phone numbers) are deliberately not extracted.
+    Fields marked &ldquo;text-only&rdquo; came from flattened PDFs where checkbox answers could not be read.
+    Earlier academic work on the same reports: El-Yabroudi et al., <em>Electronics</em> 14(4):651 (2025); Haroon &amp; Ryan (2023).
+  </footer>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// theme toggle (remembered if storage is available)
+try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+$('#theme').onclick = () => {
+  const dark = getComputedStyle(document.documentElement).getPropertyValue('--paper').trim() === '#17150f';
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch {}
+};
+
+function tally(rows, pick, split = false) {
+  const m = new Map();
+  for (const r of rows) {
+    let v = pick(r);
+    if (!v) continue;
+    for (const k of split ? String(v).split('; ') : [v]) m.set(k, (m.get(k) || 0) + 1);
+  }
+  return [...m].sort((a, b) => b[1] - a[1]);
+}
+
+function bars(title, entries, max = 8) {
+  const top = entries.slice(0, max);
+  const peak = top.length ? top[0][1] : 1;
+  return `<div class="chart"><h3>${esc(title)}</h3>${top.map(([k, n]) =>
+    `<div class="row"><span class="lbl" title="${esc(k)}">${esc(cap(String(k)))}</span><span class="track"><span class="fill" style="display:block;width:${(n / peak) * 100}%"></span></span><span class="n">${n}</span></div>`).join('') || '<div class="note">No data yet.</div>'}</div>`;
+}
+
+function render(rows) {
+  const dated = rows.filter((r) => r.accident_date).map((r) => r.accident_date).sort();
+  $('#stats').innerHTML = [
+    [rows.length, 'Reports'],
+    [new Set(rows.map((r) => r.manufacturer.toLowerCase().replace(/[^a-z]/g, '').slice(0, 5))).size, 'Companies'],
+    [dated.length ? dated[0].slice(0, 4) + '–' + dated[dated.length - 1].slice(0, 4) : '–', 'Years covered'],
+    [rows.filter((r) => r.narrative_mentions_injury).length, 'Narratives mentioning injury*'],
+  ].map(([n, l]) => `<div class="stat"><b>${esc(n)}</b><span>${l}</span></div>`).join('');
+
+  $('#charts').innerHTML =
+    bars('Reports by year', tally(rows, (r) => r.accident_date.slice(0, 4)).sort((a, b) => b[0].localeCompare(a[0])), 10) +
+    bars('By company', tally(rows, (r) => r.manufacturer.replace(/,? ?(inc|llc|corp)\.?.*$/i, '').trim())) +
+    bars('Collision type (AV)', tally(rows, (r) => r.av_collision_type, true)) +
+    bars('AV damage severity', tally(rows, (r) => r.av_damage_severity)) +
+    bars('AV movement before crash', tally(rows, (r) => r.av_movement_before, true)) +
+    bars('City', tally(rows, (r) => r.city));
+}
+
+function card(r) {
+  const tags = [r.av_damage_severity && `damage: ${r.av_damage_severity}`, r.mode && `${r.mode} mode`, r.weather, r.lighting, r.av_collision_type && `AV: ${r.av_collision_type}`]
+    .filter(Boolean).map((t) => `<span class="tag plain">${esc(t)}</span>`).join('');
+  const flag = r.parse_quality === 'text-only' ? '<span class="tag">text-only parse</span>' : '';
+  const av = [r.av_year, r.av_make, r.av_model].filter(Boolean).join(' ');
+  const src = r.source_url ? ` &middot; <a href="${esc(r.source_url)}">original PDF</a>` : '';
+  return `<article class="case">
+    <h4>${esc(r.manufacturer)}${r.city ? ' &mdash; ' + esc(r.city) : ''}</h4>
+    <div class="meta">${esc(r.accident_date || 'date unknown')}${r.accident_time ? ' at ' + esc(r.accident_time) : ''}${r.location ? ' &middot; ' + esc(r.location) : ''}${av ? ' &middot; ' + esc(av) : ''}${src}</div>
+    <div class="tags">${flag}${tags}</div>
+    ${r.narrative ? `<details><summary>Read the company's narrative</summary><p>${esc(r.narrative)}</p></details>` : ''}
+  </article>`;
+}
+
+fetch('data.json').then((r) => r.json()).then(({ generated, count, rows }) => {
+  $('#byline').textContent = `${count} reports · refreshed ${generated.slice(0, 10)}`;
+  render(rows);
+  const mfrs = [...new Set(rows.map((r) => r.manufacturer))].sort();
+  $('#mfr').insertAdjacentHTML('beforeend', mfrs.map((m) => `<option>${esc(m)}</option>`).join(''));
+  const draw = () => {
+    const q = $('#q').value.toLowerCase().trim(), m = $('#mfr').value;
+    const hits = rows.filter((r) => (!m || r.manufacturer === m) && (!q || JSON.stringify(r).toLowerCase().includes(q)));
+    $('#count').textContent = `${hits.length} of ${rows.length} reports` + (hits.length > 100 ? ' (showing the 100 most recent)' : '') + '  ·  * injury flag is a keyword heuristic on the narrative, not an official finding.';
+    $('#list').innerHTML = hits.slice(0, 100).map(card).join('') || '<div class="empty">No reports match.</div>';
+  };
+  $('#q').oninput = draw; $('#mfr').onchange = draw; draw();
+}).catch(() => { $('#byline').textContent = 'Could not load data.json'; });
+</script>
+</body>
+</html>

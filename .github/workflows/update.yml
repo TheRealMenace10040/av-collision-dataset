@@ -1,0 +1,48 @@
+name: Update dataset and deploy site
+
+on:
+  schedule:
+    - cron: "17 9 * * 1"   # Mondays
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["docs/**", "src/**", "data/urls.txt", ".github/workflows/update.yml"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: data/pdfs
+          key: pdfs-${{ github.run_id }}
+          restore-keys: pdfs-
+      # The DMV page may block automated requests; if so this step is skipped and urls.txt is left as-is.
+      - run: node src/discover.mjs || echo "discovery skipped (DMV page unavailable to scripts)"
+      - run: npm run update
+      - name: Commit refreshed data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/reports.csv data/reports.json data/urls.txt data/urls.json data/failures.json docs/data.json docs/reports.csv
+          git diff --cached --quiet || git commit -m "Refresh dataset" && git push || true
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - uses: actions/deploy-pages@v4

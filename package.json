@@ -1,0 +1,17 @@
+{
+  "name": "av-collision-dataset",
+  "version": "1.0.0",
+  "description": "California DMV autonomous-vehicle collision reports (form OL 316) as a clean, searchable dataset.",
+  "type": "module",
+  "scripts": {
+    "discover": "node src/discover.mjs",
+    "fetch": "node src/fetch.mjs",
+    "build": "node src/build.mjs data/pdfs",
+    "update": "node src/fetch.mjs && node src/build.mjs data/pdfs",
+    "serve": "node tools/serve.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "pdfjs-dist": "^6.4.299"
+  }
+}
