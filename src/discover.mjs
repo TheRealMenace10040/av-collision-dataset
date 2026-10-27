@@ -17,16 +17,21 @@ if (local) {
   const res = await fetch(PAGE, { headers: { 'user-agent': UA } });
   if (!res.ok) {
     console.error(`DMV page returned HTTP ${res.status}; not retrying with a disguised client. See the note at the top of this file.`);
-    process.exit(2);
+    process.exitCode = 2;
+  } else {
+    html = await res.text();
   }
-  html = await res.text();
 }
 
 const found = new Set();
-for (const m of html.matchAll(/href="([^"]*\/portal\/file\/[^"]+)"/gi)) {
+for (const m of (html ?? '').matchAll(/href="([^"]*\/portal\/file\/[^"]+)"/gi)) {
   found.add(new URL(m[1], 'https://www.dmv.ca.gov').href);
 }
+if (html == null) {
+  console.error('urls.txt left unchanged.');
+} else {
 const existing = existsSync('data/urls.txt') ? readFileSync('data/urls.txt', 'utf8').split(/\r?\n/).filter(Boolean) : [];
 const all = [...new Set([...existing, ...found])];
 writeFileSync('data/urls.txt', all.join('\n') + '\n');
 console.log(`found ${found.size} links on page; urls.txt now has ${all.length} (${all.length - existing.length} new)`);
+}
