@@ -49,11 +49,26 @@ function text(fields, name) {
   return f ? f.value : '';
 }
 
-function isoDate(mdy) {
-  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(mdy);
-  if (!m) return '';
-  const y = m[3].length === 2 ? '20' + m[3] : m[3];
-  return `${y}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+const MONTH_NAMES = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+function isoDate(s) {
+  s = /^[A-Za-z]/.test(s.trim()) ? s.trim() : s.replace(/\s+/g, '');
+  let y, mo, d, m;
+  if ((m = /^(\d{1,2})[\/.-](\d{1,3})[\/.-](\d{2,4})$/.exec(s))) [mo, d, y] = [m[1], String(+m[2]), m[3]];
+  else if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s))) [y, mo, d] = [m[1], m[2], m[3]];
+  else if ((m = /^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/.exec(s))) {
+    const i = MONTH_NAMES.indexOf(m[1].slice(0, 3).toLowerCase());
+    if (i < 0) return '';
+    [mo, d, y] = [String(i + 1), m[2], m[3]];
+  } else return '';
+  if (y.length === 2) y = '20' + y;
+  return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+// Last resort when the date field is unusable: the DMV names files like waymo_07252023 / zoox_061122.
+function dateFromFilename(path) {
+  const d = /(\d{2})(\d{2})(\d{4}|\d{2})(?!\d)/.exec(basename(path).replace(/\.pdf$/i, ''));
+  return d ? isoDate(`${d[1]}/${d[2]}/${d[3]}`) : '';
 }
 
 function time24(t, am, pm) {
@@ -159,7 +174,7 @@ export async function parsePdf(path, sourceUrl = '') {
     form_revision: 'OL316',
     parse_quality: 'form-fields',
     manufacturer: text(fields, 'MANufACTuRERS NAME'),
-    accident_date: isoDate(date),
+    accident_date: isoDate(date) || dateFromFilename(path),
     accident_time: time24(text(fields, 'Time of Accident'), am, pm),
     av_year: text(fields, 'VEhICLE YEAR'),
     av_make: text(fields, 'MAkE'),

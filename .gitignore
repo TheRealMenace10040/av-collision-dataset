@@ -1,4 +1,6 @@
 node_modules/
 data/pdfs/
+data/sgo/
+data/update.log
 .env
 *.log

@@ -70,7 +70,7 @@
   <header>
     <div class="kicker">Open data &middot; California DMV</div>
     <h1>Every robotaxi crash report, in one table</h1>
-    <p class="dek">California requires autonomous-vehicle companies to file a PDF form (OL&nbsp;316) after any collision. This project reads those forms and turns them into a clean dataset you can search, sort and download.</p>
+    <p class="dek">California required autonomous-vehicle companies to file a PDF form (OL&nbsp;316) after every collision. This project reads those forms, links them to the federal NHTSA crash reports, and publishes one clean dataset you can search and download.</p>
     <div class="byline" id="byline">Loading&hellip;</div>
   </header>
 
@@ -87,7 +87,14 @@
     <div class="tools">
       <input id="q" type="search" placeholder="Search city, company, street, or narrative text&hellip;" aria-label="Search reports">
       <select id="mfr" aria-label="Filter by company"><option value="">All companies</option></select>
-      <a class="btn" href="reports.csv" download>Download CSV</a>
+      <select id="src" aria-label="Filter by source">
+        <option value="">All sources</option>
+        <option value="ol316">DMV OL 316 only</option>
+        <option value="sgo">NHTSA SGO only</option>
+        <option value="both">Linked (both)</option>
+      </select>
+      <a class="btn" href="reports.csv" download>OL 316 CSV</a>
+      <a class="btn" href="sgo_ca.csv" download>NHTSA CSV</a>
       <a class="btn" href="data.json" download>JSON</a>
     </div>
     <div class="note" id="count"></div>
@@ -95,7 +102,9 @@
   </section>
 
   <footer id="foot">
-    Source: <a href="https://www.dmv.ca.gov/portal/vehicle-industry-services/autonomous-vehicles/autonomous-vehicle-collision-reports/">California DMV autonomous vehicle collision reports</a>.
+    Sources: California DMV autonomous vehicle collision reports (form OL&nbsp;316, Oct 2014 to Apr 18, 2026; the DMV has since retired its index page), and
+    <a href="https://www.nhtsa.gov/laws-regulations/standing-general-order-crash-reporting">NHTSA Standing General Order crash reports</a> for California.
+    NHTSA dates are month-only, so a DMV report is linked to an NHTSA report only when operator, month, time and city all match uniquely; everything else stays unlinked.
     Personal details (driver names, licence numbers, birth dates, insurance policy numbers, phone numbers) are deliberately not extracted.
     Fields marked &ldquo;text-only&rdquo; came from flattened PDFs where checkbox answers could not be read.
     Earlier academic work on the same reports: El-Yabroudi et al., <em>Electronics</em> 14(4):651 (2025); Haroon &amp; Ryan (2023).
@@ -135,48 +144,51 @@ function bars(title, entries, max = 8) {
 
 function render(rows) {
   const dated = rows.filter((r) => r.accident_date).map((r) => r.accident_date).sort();
+  const hurt = rows.filter((r) => r.injury_severity && !/no injur|property damage|unknown/i.test(r.injury_severity)).length;
   $('#stats').innerHTML = [
-    [rows.length, 'Reports'],
-    [new Set(rows.map((r) => r.manufacturer.toLowerCase().replace(/[^a-z]/g, '').slice(0, 5))).size, 'Companies'],
+    [rows.length.toLocaleString(), 'Crash reports'],
+    [new Set(rows.map((r) => r.manufacturer.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().split(/\s+/)[0])).size, 'Companies'],
     [dated.length ? dated[0].slice(0, 4) + '–' + dated[dated.length - 1].slice(0, 4) : '–', 'Years covered'],
-    [rows.filter((r) => r.narrative_mentions_injury).length, 'Narratives mentioning injury*'],
+    [hurt, 'With a reported injury (NHTSA)'],
   ].map(([n, l]) => `<div class="stat"><b>${esc(n)}</b><span>${l}</span></div>`).join('');
 
   $('#charts').innerHTML =
     bars('Reports by year', tally(rows, (r) => r.accident_date.slice(0, 4)).sort((a, b) => b[0].localeCompare(a[0])), 10) +
-    bars('By company', tally(rows, (r) => r.manufacturer.replace(/,? ?(inc|llc|corp)\.?.*$/i, '').trim())) +
+    bars('By company', tally(rows, (r) => { const w = r.manufacturer.replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/)[0]; return /^(general|gm)$/i.test(w) ? 'GM' : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); })) +
     bars('Collision type (AV)', tally(rows, (r) => r.av_collision_type, true)) +
-    bars('AV damage severity', tally(rows, (r) => r.av_damage_severity)) +
+    bars('Crash with', tally(rows, (r) => r.crash_with)) +
+    bars('Highest injury alleged', tally(rows, (r) => r.injury_severity)) +
     bars('AV movement before crash', tally(rows, (r) => r.av_movement_before, true)) +
     bars('City', tally(rows, (r) => r.city));
 }
 
 function card(r) {
-  const tags = [r.av_damage_severity && `damage: ${r.av_damage_severity}`, r.mode && `${r.mode} mode`, r.weather, r.lighting, r.av_collision_type && `AV: ${r.av_collision_type}`]
+  const tags = [r.injury_severity && `injury: ${r.injury_severity}`, r.crash_with && `with: ${r.crash_with}`, r.av_damage_severity && `damage: ${r.av_damage_severity}`, r.mode && `${r.mode} mode`, r.weather, r.lighting, r.av_collision_type && `AV: ${r.av_collision_type}`]
     .filter(Boolean).map((t) => `<span class="tag plain">${esc(t)}</span>`).join('');
-  const flag = r.parse_quality === 'text-only' ? '<span class="tag">text-only parse</span>' : '';
+  const src = { ol316: 'DMV OL 316', sgo: 'NHTSA SGO', both: 'DMV + NHTSA' }[r.source];
+  const flag = `<span class="tag">${src}</span>` + (r.parse_quality === 'text-only' ? '<span class="tag">text-only parse</span>' : '');
   const av = [r.av_year, r.av_make, r.av_model].filter(Boolean).join(' ');
-  const src = r.source_url ? ` &middot; <a href="${esc(r.source_url)}">original PDF</a>` : '';
+  const pdf = r.source_url ? ` &middot; <a href="${esc(r.source_url)}">original PDF</a>` : '';
   return `<article class="case">
     <h4>${esc(r.manufacturer)}${r.city ? ' &mdash; ' + esc(r.city) : ''}</h4>
-    <div class="meta">${esc(r.accident_date || 'date unknown')}${r.accident_time ? ' at ' + esc(r.accident_time) : ''}${r.location ? ' &middot; ' + esc(r.location) : ''}${av ? ' &middot; ' + esc(av) : ''}${src}</div>
+    <div class="meta">${esc(r.accident_date || 'date unknown')}${r.accident_time ? ' at ' + esc(r.accident_time) : ''}${r.location ? ' &middot; ' + esc(r.location) : ''}${av ? ' &middot; ' + esc(av) : ''}${pdf}</div>
     <div class="tags">${flag}${tags}</div>
     ${r.narrative ? `<details><summary>Read the company's narrative</summary><p>${esc(r.narrative)}</p></details>` : ''}
   </article>`;
 }
 
-fetch('data.json').then((r) => r.json()).then(({ generated, count, rows }) => {
-  $('#byline').textContent = `${count} reports · refreshed ${generated.slice(0, 10)}`;
+fetch('data.json').then((r) => r.json()).then(({ generated, counts, rows }) => {
+  $('#byline').textContent = `${counts.total.toLocaleString()} crash reports · ${counts.ol316.toLocaleString()} DMV OL 316 + ${counts.sgo.toLocaleString()} NHTSA SGO (${counts.linked.toLocaleString()} linked) · built ${generated.slice(0, 10)}`;
   render(rows);
   const mfrs = [...new Set(rows.map((r) => r.manufacturer))].sort();
   $('#mfr').insertAdjacentHTML('beforeend', mfrs.map((m) => `<option>${esc(m)}</option>`).join(''));
   const draw = () => {
-    const q = $('#q').value.toLowerCase().trim(), m = $('#mfr').value;
-    const hits = rows.filter((r) => (!m || r.manufacturer === m) && (!q || JSON.stringify(r).toLowerCase().includes(q)));
-    $('#count').textContent = `${hits.length} of ${rows.length} reports` + (hits.length > 100 ? ' (showing the 100 most recent)' : '') + '  ·  * injury flag is a keyword heuristic on the narrative, not an official finding.';
+    const q = $('#q').value.toLowerCase().trim(), m = $('#mfr').value, s = $('#src').value;
+    const hits = rows.filter((r) => (!m || r.manufacturer === m) && (!s || r.source === s) && (!q || JSON.stringify(r).toLowerCase().includes(q)));
+    $('#count').textContent = `${hits.length.toLocaleString()} of ${rows.length.toLocaleString()} reports` + (hits.length > 100 ? ' (showing the 100 most recent)' : '');
     $('#list').innerHTML = hits.slice(0, 100).map(card).join('') || '<div class="empty">No reports match.</div>';
   };
-  $('#q').oninput = draw; $('#mfr').onchange = draw; draw();
+  $('#q').oninput = draw; $('#mfr').onchange = draw; $('#src').onchange = draw; draw();
 }).catch(() => { $('#byline').textContent = 'Could not load data.json'; });
 </script>
 </body>

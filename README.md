@@ -10,7 +10,7 @@ Earlier work covers the same reports ([El-Yabroudi et al., *Electronics* 14(4):6
 
 - **Reads the PDFs' fillable form fields directly**, so no OCR and far fewer transcription errors. Older revisions (2019 on) parse too.
 - **Decodes the checkbox grid** (weather, lighting, road surface, movement before crash, collision type...) into plain words using the legend printed on the form.
-- **Is built to be re-run**: a weekly GitHub Action fetches new reports and republishes the dataset and site.
+- **Is reproducible**: `npm run update` re-downloads and re-parses everything from `data/urls.txt`; a GitHub Action can rebuild and republish the site on demand.
 - **Falls back gracefully** on flattened PDFs (text-only rows, flagged `parse_quality = text-only`).
 
 ## Data columns
@@ -28,25 +28,31 @@ Node.js (ESM), [pdf.js](https://github.com/mozilla/pdf.js) (`pdfjs-dist`) for re
 
 ```bash
 npm install
-npm run update      # download PDFs listed in data/urls.txt, then parse them
+npm run sgo         # download NHTSA SGO crash CSVs
+npm run update      # download PDFs listed in data/urls.txt, then parse + join everything
 npm run serve       # preview docs/ at http://localhost:5183
 ```
 
-Pipeline: `data/urls.txt` → `src/fetch.mjs` (polite download to `data/pdfs/`, git-ignored) → `src/build.mjs` (parse) → `data/reports.{csv,json}` and `docs/data.json`.
+Pipeline: `data/urls.txt` → `src/fetch.mjs` (polite download to `data/pdfs/`, git-ignored) → `src/build.mjs` (parse OL 316, load SGO, link) → `data/reports.{csv,json}`, `data/sgo_ca.{csv,json}` and `docs/data.json`.
 
-## Known limitation: finding the report list
+## The DMV page was retired (and what that means)
 
-The DMV collision-reports page (`dmv.ca.gov/.../autonomous-vehicle-collision-reports/`) returns HTTP 404 to scripted requests as of 2026-10-27, so `src/discover.mjs` cannot scrape the list of PDF links on its own, and this project does not try to evade that. Today `data/urls.txt` is a **seed of 13 reports** (2019-2026). To grow it to the full ~960+:
+The DMV's collision-reports index page (`dmv.ca.gov/.../autonomous-vehicle-collision-reports/`) now returns a real 404, even in a normal browser. Its "View Collision Reports" button points to UC Berkeley's [TIMS AV Safety Dashboard](https://tims.berkeley.edu/tools/avsafety.php), which says the DMV-reported testing-permit crash data (OL 316) covers **October 2014 to April 18, 2026** and is now archived. Crashes reported on or after April 28, 2026 flow through NHTSA's Standing General Order (SGO) reporting instead.
 
-1. Open the DMV page in a normal browser, save it (Ctrl+S), then run `node src/discover.mjs saved-page.html`, **or**
-2. paste the PDF links into `data/urls.txt` by hand, **or**
-3. ask the DMV for a bulk or machine-readable feed.
+So the OL 316 reports are a **closed, historical set** and this dataset is a one-time build, not a feed:
 
-Then `npm run update`. The weekly Action will keep going from whatever is in `urls.txt`.
+- The report list was recovered from the Internet Archive's copy of the DMV page (2026-04-19), saved in `data/archive-snapshot-2026-04-19.html` and merged into `data/urls.txt` with `node src/discover.mjs <file>`. The individual PDFs are still hosted by the DMV and download normally.
+- For crashes after April 2026 (and as a cross-check on the older ones), the dataset also includes NHTSA's public Standing General Order (SGO) ADS crash reports for California, see below.
+
+## NHTSA SGO join
+
+[`data/sgo_ca.csv`](data/sgo_ca.csv) holds every California ADS crash from NHTSA's public SGO files (latest version of each report). NHTSA publishes dates only as month-year, and redacts addresses, so a DMV report is linked to an SGO report only when **operator + month + time (HH:MM) + city** match, and each side has exactly one candidate. Ambiguous cases stay unlinked rather than guessed. Linked reports get `sgo_report_id`, `sgo_injury_severity`, `sgo_crash_with` and `sgo_roadway_type` in `data/reports.csv`. SGO also fills gaps the DMV forms never covered: structured injury severity, the other party's type, and crashes after April 2026.
+
+`npm run sgo` re-downloads the NHTSA files (they refresh monthly) and `npm run build` rebuilds everything.
 
 ## Deployment
 
-GitHub repo + GitHub Pages (static, no backend). Site served from `docs/` by `.github/workflows/update.yml`. Live URL: _filled in after the first deploy_.
+GitHub repo + GitHub Pages (static, no backend). Site served from `docs/` by `.github/workflows/pages.yml`. Live URL: _filled in after the first deploy_.
 
 ## Data source and licence
 

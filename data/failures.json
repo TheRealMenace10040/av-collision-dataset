@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "file": "report-of-traffic-accident-involving-an-autonomous-vehicle-ol-316.pdf",
+    "error": "blank form template, skipped"
+  },
+  {
+    "file": "zoox_082125_redacted.pdf",
+    "error": "No password given"
+  }
+]

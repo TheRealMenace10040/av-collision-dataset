@@ -6,6 +6,7 @@
   "scripts": {
     "discover": "node src/discover.mjs",
     "fetch": "node src/fetch.mjs",
+    "sgo": "node src/fetch-sgo.mjs",
     "build": "node src/build.mjs data/pdfs",
     "update": "node src/fetch.mjs && node src/build.mjs data/pdfs",
     "serve": "node tools/serve.mjs"

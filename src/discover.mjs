@@ -1,9 +1,9 @@
 // Finds report PDF links on the DMV collision-reports page and merges them into data/urls.txt.
 //
-// NOTE: as of 2026-10-27 the DMV page answers scripted requests with HTTP 404 (it appears to sit behind
-// bot protection). This script does NOT try to evade that. If it fails, feed data/urls.txt another way:
-//   - save the page from a normal browser (Ctrl+S) and run:  node src/discover.mjs saved-page.html
-//   - or paste links by hand / from an archived copy of the page.
+// NOTE: as of 2026-10-27 the DMV retired this page (real 404 in any browser; its button now points to UC Berkeley
+// TIMS). The report list was recovered from the Internet Archive's 2026-04-19 copy instead:
+//   node src/discover.mjs data/archive-snapshot-2026-04-19.html
+// Any saved copy of the page works the same way.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const PAGE = 'https://www.dmv.ca.gov/portal/vehicle-industry-services/autonomous-vehicles/autonomous-vehicle-collision-reports/';
