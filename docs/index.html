@@ -25,21 +25,21 @@
   * { box-sizing: border-box; }
   html { background: var(--paper); }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); line-height: 1.55; }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px 64px; }
-  header { padding: 40px 0 20px; border-bottom: 3px double var(--ink); }
+  .wrap { max-width: 1440px; margin: 0 auto; padding: 0 clamp(16px, 3.5vw, 56px) 64px; }
+  header { padding: 48px 0 24px; border-bottom: 3px double var(--ink); }
   .kicker { font: 600 12px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
-  h1 { font-size: clamp(30px, 6vw, 52px); line-height: 1.08; margin: 10px 0 12px; letter-spacing: -.01em; }
-  .dek { font-size: 19px; color: var(--muted); max-width: 680px; margin: 0; }
+  h1 { font-size: clamp(30px, 5.2vw, 72px); line-height: 1.05; margin: 10px 0 14px; letter-spacing: -.015em; max-width: 18ch; }
+  .dek { font-size: clamp(18px, 1.4vw, 22px); color: var(--muted); max-width: 52em; margin: 0; }
   .byline { font: 13px var(--sans); color: var(--muted); margin-top: 14px; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 28px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
   .stat { padding: 16px 16px 16px 0; }
-  .stat b { display: block; font-size: 36px; line-height: 1; }
+  .stat b { display: block; font-size: clamp(36px, 3.4vw, 56px); line-height: 1; margin-bottom: 4px; }
   .stat span { font: 12px var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-  h2 { font-size: 24px; margin: 40px 0 6px; }
+  h2 { font-size: clamp(24px, 2vw, 32px); margin: 48px 0 6px; }
   .note { font: 13px var(--sans); color: var(--muted); margin: 0 0 14px; }
-  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px 48px; }
   .chart h3 { font: 600 13px var(--sans); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 10px; }
-  .row { display: grid; grid-template-columns: minmax(90px, 40%) 1fr 34px; align-items: center; gap: 8px; font: 13px var(--sans); margin: 5px 0; }
+  .row { display: grid; grid-template-columns: minmax(110px, 42%) 1fr 40px; align-items: center; gap: 10px; font: 14px var(--sans); margin: 6px 0; }
   .row .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .row .track { height: 12px; background: var(--rule); border-radius: 2px; overflow: hidden; }
   .row .fill { height: 100%; background: var(--bar); }
@@ -49,7 +49,9 @@
   input { flex: 1 1 240px; }
   a.btn, button { font: 600 13px var(--sans); padding: 9px 13px; border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 3px; text-decoration: none; cursor: pointer; }
   a.btn:hover, button:hover { background: var(--ink); color: var(--paper); }
-  .case { background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--accent); padding: 14px 16px; margin: 12px 0; }
+  #list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 14px; align-items: start; }
+  .case { background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--accent); padding: 14px 16px; margin: 0; }
+  .empty { grid-column: 1 / -1; }
   .case h4 { margin: 0 0 4px; font-size: 18px; }
   .meta { font: 12.5px var(--sans); color: var(--muted); }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
@@ -158,7 +160,7 @@ function render(rows) {
     bars('Collision type (AV)', tally(rows, (r) => r.av_collision_type, true)) +
     bars('Crash with', tally(rows, (r) => r.crash_with)) +
     bars('Highest injury alleged', tally(rows, (r) => r.injury_severity)) +
-    bars('AV movement before crash', tally(rows, (r) => r.av_movement_before, true)) +
+    bars('AV movement before crash', tally(rows, (r) => r.av_movement_before.toLowerCase(), true)) +
     bars('City', tally(rows, (r) => r.city));
 }
 
