@@ -52,7 +52,7 @@ So the OL 316 reports are a **closed, historical set** and this dataset is a one
 
 ## Deployment
 
-GitHub repo + GitHub Pages (static, no backend). Site served from `docs/` by `.github/workflows/pages.yml`. Live URL: _filled in after the first deploy_.
+GitHub repo + GitHub Pages (static, no backend). Site served from `docs/` by `.github/workflows/pages.yml`. Live site: https://therealmenace10040.github.io/av-collision-dataset/
 
 ## Data source and licence
 
